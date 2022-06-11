@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  appserver:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.dev
+    container_name: appserver
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./app:/app
+    ports:
+      - 8000:8000
+    env_file: ./app/.env
+    networks:
+      - shared_network
+    restart: on-failure
+    depends_on:
+      - redis
+
+  celery:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.dev
+    container_name: worker
+    command: python worker.py
+    volumes:
+      - ./app:/app
+    env_file: ./app/.env
+    depends_on:
+      - appserver
+      - redis
+    networks:
+      - shared_network
+    restart: on-failure
+
+  celery-beat:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.dev
+    container_name: celery-beat
+    command: celery -A appserver beat -l info --logfile=logs/celery.beat.log
+    volumes:
+      - ./app:/app
+    env_file: ./app/.env
+    depends_on:
+      - redis
+    networks:
+      - shared_network
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: broker
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - 6379:6379
+    expose:
+      - 6379
+    env_file: ./app/.env
+    volumes:
+      - redis_data:/data
+    networks:
+      - shared_network
+    restart: on-failure
+
+  flower:
+    image: mher/flower
+    container_name: flower
+    command: celery flower --persistent=True
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=8888
+    depends_on:
+      - redis
+    ports:
+      - 8888:8888
+    restart: always
+    volumes:
+      - flower_data:/data
+    networks:
+      - shared_network
+
+volumes:
+  redis_data:
+  flower_data:
+
+networks:
+  shared_network:
+    name: shared_network
+    driver: bridge

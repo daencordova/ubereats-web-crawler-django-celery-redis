@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  appserver:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.prod
+    container_name: appserver
+    command: gunicorn --bind 0.0.0.0:8000 appserver.wsgi --workers=4
+    restart: always
+    expose:
+      - 8000
+    volumes:
+      - ./app:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    networks:
+      - shared_network
+    env_file: .env
+  
+  celery:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.prod
+    container_name: worker
+    command: python worker.py
+    volumes:
+      - ./app:/app
+    env_file: .env
+    depends_on:
+      - appserver
+      - redis
+    networks:
+      - shared_network
+    restart: on-failure
+
+  celery-beat:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.prod
+    container_name: celery-beat
+    command: celery -A appserver beat -l info --logfile=logs/celery.beat.log
+    volumes:
+      - ./app:/app
+    env_file: .env
+    depends_on:
+      - redis
+    networks:
+      - shared_network
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: broker
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - 6379:6379
+    expose:
+      - 6379
+    env_file: .env
+    volumes:
+      - redis_data:/data
+    networks:
+      - shared_network
+    restart: on-failure
+
+  flower:
+    image: mher/flower
+    container_name: flower
+    command: celery flower --persistent=True
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=8888
+    depends_on:
+      - redis
+    ports:
+      - 8888:8888
+    restart: always
+    env_file: .env
+    volumes:
+      - flower_data:/data
+    networks:
+      - shared_network
+
+  nginx:
+    build:
+      context: nginx
+      dockerfile: Dockerfile
+    container_name: nginx
+    restart: always
+    env_file: .env
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - 80:80
+    depends_on:
+      - appserver
+    networks:
+      - shared_network
+
+networks:
+  shared_network:
+    name: shared_network
+
+volumes:
+  redis_data:
+  flower_data:
+  media_volume:
+  static_volume:
