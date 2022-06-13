@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_beat",
     "django_celery_results",
+    "crawlers.common.apps.CommonConfig",
+    "crawlers.location.apps.LocationConfig",
 ]
 
 MIDDLEWARE = [
