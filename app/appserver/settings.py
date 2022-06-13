@@ -42,6 +42,10 @@ INSTALLED_APPS = [
     "django_celery_results",
     "crawlers.common.apps.CommonConfig",
     "crawlers.location.apps.LocationConfig",
+    "crawlers.city.apps.CityConfig",
+    "crawlers.category.apps.CategoryConfig",
+    "crawlers.restaurant.apps.RestaurantConfig",
+    "crawlers.menu.apps.MenuConfig",
 ]
 
 MIDDLEWARE = [

@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class CommonConfig(AppConfig):
+class CategoryConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "crawlers.common"
+    name = "crawlers.category"
