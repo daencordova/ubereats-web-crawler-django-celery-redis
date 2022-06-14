@@ -4,6 +4,8 @@ Django web server using Celery server to handle asynchronous tasks by using Redi
 
 - [Install](#install)
   * [Docker-compose install](#docker-compose-install)
+- [Execute](#execute)
+  + [Run tasks](#run-tasks)
 
 Components:
 * Web Framework [Django](https://www.djangoproject.com/)
@@ -40,3 +42,25 @@ $ make collectstatic
 $ make up-development
 ```
 Test it out at [http://localhost:8000](http://localhost:8000).
+
+### Execute
+
+---
+
+#### Run Tasks
+
+1. run tasks manually from the shell:
+
+```shell
+$ docker-compose -f docker-compose.dev.yml exec appserver python manage.py shell
+$ from crawlers.location.tasks import start_location_task
+$ start_location_task.delay()
+```
+
+2. How to stop all pending tasks:
+
+```shell
+$ docker-compose -f docker-compose.dev.yml exec appserver python manage.py shell
+$ from appserver.celery import app
+$ app.control.purge()
+```
